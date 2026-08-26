@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "evo.insync",
+  "name": "Insync",
+  "version": "1.0.0",
+  "author": "seb",
+  "description": "Insync cloud sync status and file progress",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Insync",
+    "description": "Sync status, accounts, and active file transfers",
+    "category": "Files",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
