@@ -13,7 +13,6 @@ A plugin is a git repo with a `manifest.json` at its root. Adding one clones it 
 ```bash
 omarchy plugin add https://github.com/sebday/omarchy-plugin-insync.git
 omarchy plugin enable evo.insync
-omarchy bar move evo.insync --section right
 ```
 
 A local path works the same way.
@@ -55,8 +54,8 @@ Left-click the bar icon for a popup with:
 
 - **Hero** — status, account count, and a pause/resume switch (same pattern as Audio and Dropbox)
 - **Accounts** — email and provider for each linked cloud
-- **Files** — up to five active transfers, with size and percent when Insync reports them
-- **Errors** — items from `insync error list`
+- **Files** — up to five active transfers when syncing (hidden while paused)
+- **Errors** — items from `insync error list` (skipped while paused)
 
 The panel polls while it is open.
 
@@ -76,4 +75,4 @@ omarchy-shell evo.insync refresh
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT.

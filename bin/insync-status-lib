@@ -86,6 +86,10 @@ insync_parse_popup() {
     local status_upper="${sync_status^^}"
     [[ "$status_upper" == *PAUSED* ]] && paused=true
 
+    if $paused; then
+        file_lines=()
+    fi
+
     local err_clean="${errors_text#"${errors_text%%[![:space:]]*}"}"
     err_clean="${err_clean%"${err_clean##*[![:space:]]}"}"
     if [[ -n "$err_clean" && "${err_clean,,}" != "no errors or actions required." ]]; then

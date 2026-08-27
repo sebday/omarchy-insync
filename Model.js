@@ -33,7 +33,7 @@ function parsePayload(raw) {
     status: String(json.status || ""),
     paused: json.paused === true,
     accounts: Array.isArray(json.accounts) ? json.accounts : [],
-    files: Array.isArray(json.files) ? json.files : [],
+    files: json.paused === true ? [] : (Array.isArray(json.files) ? json.files : []),
     errors: Array.isArray(json.errors) ? json.errors : []
   }
 }
@@ -92,6 +92,7 @@ function isUnavailable(data) {
 function emptyFilesMessage(data, loading) {
   if (loading) return ""
   if (isUnavailable(data)) return "Insync unavailable"
+  if (data && data.paused) return ""
   return "Nothing syncing"
 }
 

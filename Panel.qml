@@ -52,7 +52,7 @@ Panel {
       status: String(parsed.status || ""),
       paused: parsed.paused === true,
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
-      files: Array.isArray(current.files) ? current.files : [],
+      files: parsed.paused === true ? [] : (Array.isArray(current.files) ? current.files : []),
       errors: Array.isArray(parsed.errors) ? parsed.errors : []
     }
     loading = false
@@ -94,7 +94,9 @@ Panel {
   function refresh(showFilesSpinner) {
     if (!statusScript || statusProc.running) return
     if (!data.ok && displayAccounts.length === 0) loading = true
-    if (showFilesSpinner === true) filesLoading = true
+    var wantFiles = showFilesSpinner === true && !(data && data.paused)
+    if (wantFiles) filesLoading = true
+    else filesLoading = false
     statusProc.command = ["bash", statusScript, "popup"]
     statusProc.running = true
   }
@@ -115,7 +117,7 @@ Panel {
       status: current.status,
       paused: !wasPaused,
       accounts: Array.isArray(current.accounts) ? current.accounts : [],
-      files: Array.isArray(current.files) ? current.files : [],
+      files: [],
       errors: Array.isArray(current.errors) ? current.errors : []
     }
     root.runAction(wasPaused ? "resume" : "pause")
@@ -128,7 +130,7 @@ Panel {
 
   function openFromHotkey() {
     root.controller.show()
-    root.refresh(true)
+    root.refresh(!(data && data.paused))
   }
 
   function toggle() {
@@ -149,7 +151,7 @@ Panel {
 
   onOpenedChanged: {
     if (opened) {
-      refresh(true)
+      refresh(!(data && data.paused))
       pollTimer.start()
       Qt.callLater(function() { keyCatcher.forceActiveFocus() })
     } else {
@@ -307,14 +309,14 @@ Panel {
           }
 
           PanelSeparator {
-            visible: root.displayFiles.length > 0 || root.filesLoading
-              || (!root.loading && root.displayErrors.length === 0 && !(root.data && root.data.error))
+            visible: !root.data.paused && (root.displayFiles.length > 0 || root.filesLoading
+              || (!root.loading && root.displayErrors.length === 0 && !(root.data && root.data.error)))
             foreground: root.foreground
           }
 
           PanelSectionHeader {
-            visible: root.displayFiles.length > 0 || root.filesLoading
-              || (!root.loading && root.displayErrors.length === 0 && !(root.data && root.data.error))
+            visible: !root.data.paused && (root.displayFiles.length > 0 || root.filesLoading
+              || (!root.loading && root.displayErrors.length === 0 && !(root.data && root.data.error)))
             width: parent.width
             text: "FILES"
             foreground: root.foreground
@@ -324,7 +326,7 @@ Panel {
           Item {
             width: parent.width
             height: 56
-            visible: root.filesLoading && root.displayFiles.length === 0
+            visible: !root.data.paused && root.filesLoading && root.displayFiles.length === 0
 
             Text {
               anchors.centerIn: parent
@@ -357,7 +359,7 @@ Panel {
 
           Text {
             width: parent.width
-            visible: !root.loading && root.displayFiles.length === 0 && !root.filesLoading
+            visible: !root.data.paused && !root.loading && root.displayFiles.length === 0 && !root.filesLoading
             text: Model.emptyFilesMessage(root.data, root.loading)
             color: root.dim
             font.family: root.fontFamily

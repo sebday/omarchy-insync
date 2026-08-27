@@ -22,10 +22,17 @@ cmd_popup() {
 
   local status_text errors_text
   status_text="$("$INSYNC_BIN" status 2>&1 || true)"
-  if [[ -t 0 ]]; then
-    errors_text="$("$INSYNC_BIN" error list 2>&1 || true)"
-  else
-    errors_text="$(timeout 2 "$INSYNC_BIN" error list </dev/null 2>&1 || true)"
+
+  local paused=false
+  [[ "${status_text^^}" == *"PAUSED"* ]] && paused=true
+
+  errors_text=""
+  if ! $paused; then
+    if [[ -t 0 ]]; then
+      errors_text="$("$INSYNC_BIN" error list 2>&1 || true)"
+    else
+      errors_text="$(timeout 2 "$INSYNC_BIN" error list </dev/null 2>&1 || true)"
+    fi
   fi
 
   insync_parse_popup "$status_text" "$errors_text"
