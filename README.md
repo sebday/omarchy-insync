@@ -24,6 +24,13 @@ Plugins run as unsandboxed code inside `omarchy-shell`. Review the files before 
 
 - [Insync](https://www.insynchq.com/) installed, with `insync` on `PATH`
 - The Insync daemon running (`insync start`)
+- Hypr rule so Insync maps with Omarchy's `floating-window` tag (omadots provides this in `~/.config/hypr/windows.lua`):
+
+```lua
+o.window("^(Insync)$", { tag = "+floating-window" })
+```
+
+Without that rule, the window tiles first and middle-click feels like a jump when it is floated.
 
 ## Bar
 
@@ -50,9 +57,8 @@ Left-click the bar icon for a popup with:
 - **Accounts** — email and provider for each linked cloud
 - **Files** — up to five active transfers, with size and percent when Insync reports them
 - **Errors** — items from `insync error list`
-- **Show** — opens Insync tagged `floating-window` (Omarchy default: float, 875×600, centered)
 
-The panel polls while it is open. With no files in flight it says "Nothing syncing"; "Insync unavailable" is only used when the daemon is down or `insync` is missing.
+The panel polls while it is open.
 
 ## IPC
 

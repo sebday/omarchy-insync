@@ -401,19 +401,6 @@ Panel {
             font.pixelSize: Style.font.body
             wrapMode: Text.WordWrap
           }
-
-          Row {
-            width: parent.width
-            layoutDirection: Qt.RightToLeft
-
-            Button {
-              text: "Show"
-              iconText: "󰍉"
-              foreground: root.foreground
-              fontFamily: root.fontFamily
-              onClicked: root.showFloating()
-            }
-          }
         }
       }
     }

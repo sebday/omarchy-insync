@@ -59,14 +59,14 @@ insync_window_address() {
   ' | head -n1
 }
 
-# Reveal Insync, then apply Omarchy's floating-window tag (float, 875x600, center).
+# Reveal Insync; Hypr applies float/center/size via +floating-window at map time.
 cmd_show() {
   insync_available || return 1
   "$INSYNC_BIN" show
 
   command -v hyprctl >/dev/null 2>&1 || return 0
 
-  local addr=""
+  local addr="" window=""
   local i
   for i in $(seq 1 30); do
     addr="$(insync_window_address)"
@@ -75,16 +75,7 @@ cmd_show() {
   done
   [[ -n "$addr" ]] || return 0
 
-  local window="address:$addr"
-  local floating
-  floating="$(hyprctl clients -j 2>/dev/null | jq -r --arg addr "$addr" '.[] | select(.address == $addr) | .floating')"
-
-  hypr_dispatch "hl.dsp.window.tag({ window = \"$window\", tag = \"+floating-window\" })" tagwindow +floating-window "$window"
-  if [[ "$floating" != "true" ]]; then
-    hypr_dispatch "hl.dsp.window.float({ window = \"$window\", action = \"set\" })" togglefloating "$window"
-  fi
-  hypr_dispatch "hl.dsp.window.resize({ window = \"$window\", x = 875, y = 600 })" resizeactive exact 875 600 "$window"
-  hypr_dispatch "hl.dsp.window.center({ window = \"$window\" })" centerwindow "$window"
+  window="address:$addr"
   hypr_dispatch "hl.dsp.focus({ window = \"$window\" })" focuswindow "$window"
 }
 
