@@ -162,33 +162,72 @@ Panel {
 
   Process {
     id: cacheProc
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var raw = String(text || "").trim()
-        if (!raw) return
-        root.applyPayload(raw, true)
+    onStarted: { stdoutBuf = ""; stderrBuf = "" }
+
+    property string stdoutBuf: ""
+    property string stderrBuf: ""
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        cacheProc.stdoutBuf += chunk
+        if (cacheProc.stdoutBuf.length > 262144) {
+          cacheProc.signal(15)
+          cacheProc.stdoutBuf = ""
+        }
       }
     }
-    stderr: StdioCollector { waitForEnd: true }
+    stderr: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        cacheProc.stderrBuf += chunk
+        if (cacheProc.stderrBuf.length > 4096) {
+          cacheProc.signal(15)
+          cacheProc.stderrBuf = ""
+        }
+      }
+    }
+      onExited: function(exitCode) {
+      var raw = String(stdoutBuf || "").trim()
+        if (!raw) return
+        root.applyPayload(raw, true)
+    }
   }
 
   Process {
     id: statusProc
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var raw = String(text || "").trim()
+    onStarted: { stdoutBuf = ""; stderrBuf = "" }
+
+    property string stdoutBuf: ""
+    property string stderrBuf: ""
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        statusProc.stdoutBuf += chunk
+        if (statusProc.stdoutBuf.length > 262144) {
+          statusProc.signal(15)
+          statusProc.stdoutBuf = ""
+        }
+      }
+    }
+    stderr: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        statusProc.stderrBuf += chunk
+        if (statusProc.stderrBuf.length > 4096) {
+          statusProc.signal(15)
+          statusProc.stderrBuf = ""
+        }
+      }
+    }
+    onExited: {
+      var raw = String(stdoutBuf || "").trim()
         if (!raw) {
           root.loading = false
           root.filesLoading = false
           return
         }
         root.applyPayload(raw, false)
-      }
-    }
-    stderr: StdioCollector { waitForEnd: true }
-    onExited: {
+
       root.loading = false
       root.filesLoading = false
     }
@@ -260,6 +299,7 @@ Panel {
 
             iconComponent: Component {
               Text {
+                textFormat: Text.PlainText
                 text: "󰋼"
                 color: root.statusLineColor
                 font.family: root.fontFamily
@@ -329,6 +369,7 @@ Panel {
             visible: !root.data.paused && root.filesLoading && root.displayFiles.length === 0
 
             Text {
+              textFormat: Text.PlainText
               anchors.centerIn: parent
               text: "󰇘"
               color: root.accent
@@ -358,6 +399,7 @@ Panel {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             visible: !root.data.paused && !root.loading && root.displayFiles.length === 0 && !root.filesLoading
             text: Model.emptyFilesMessage(root.data, root.loading)
@@ -384,6 +426,7 @@ Panel {
             model: root.displayErrors
 
             Text {
+              textFormat: Text.PlainText
               required property var modelData
               width: column.width
               text: String(modelData)
@@ -395,6 +438,7 @@ Panel {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             visible: String(root.data && root.data.error ? root.data.error : "") !== "" && root.displayErrors.length === 0
             text: root.data && root.data.error ? String(root.data.error) : ""
@@ -419,6 +463,7 @@ Panel {
       height: details.height
 
       Text {
+        textFormat: Text.PlainText
         anchors.centerIn: parent
         text: Model.providerIcon(account ? account.provider : "")
         color: root.foreground
@@ -434,6 +479,7 @@ Panel {
       spacing: Style.spacing.labelGap
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width
         text: String(account && account.email ? account.email : "")
         color: root.foreground
@@ -444,6 +490,7 @@ Panel {
       }
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width
         text: String(account && account.provider ? account.provider : "Account")
         color: root.dim
@@ -460,6 +507,7 @@ Panel {
     width: parent.width
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: Model.basename(file ? file.path : "")
       color: root.foreground
@@ -470,6 +518,7 @@ Panel {
     }
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: Model.fileDetail(file)
       color: root.dim

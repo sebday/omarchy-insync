@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import qs.Ui
+import "Model.js" as Model
 
 BarWidget {
   id: root
@@ -75,7 +76,7 @@ BarWidget {
     active: root.iconError
     useActiveColor: root.iconError
     dimmed: root.iconMuted && !root.iconError && !root.iconBusy
-    tooltipText: root.tooltip
+    tooltipText: Model.plain(root.tooltip)
     opacity: !hasVisualContent || concealed ? 0 : (root.iconError ? 1 : (root.iconMuted ? 0.45 : (root.iconBusy ? pulseOpacity : 1)))
     property real pulseOpacity: 1
 

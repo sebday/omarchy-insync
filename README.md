@@ -76,3 +76,15 @@ omarchy-shell evo.insync refresh
 ## License
 
 MIT.
+
+## Removing
+
+```bash
+omarchy plugin remove evo.insync
+```
+
+That deletes the plugin directory. It does not delete:
+
+- `~/.cache/omarchy/bar/insync-accounts.json`
+
+Network: none (local Insync CLI only).
