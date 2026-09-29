@@ -25,11 +25,19 @@ Panel {
   readonly property string statusScript: Qt.resolvedUrl("bin/insync-status").toString().replace("file://", "")
   readonly property string toggleHint: root.data && root.data.paused ? "Resume syncing" : "Pause syncing"
   readonly property int pollMs: 2000
-  readonly property int maxFiles: 5
 
   property bool loading: true
-  property bool filesLoading: false
   property var data: Model.emptyData()
+  property real shownSynced: 0
+  property real shownSyncing: 0
+
+  Behavior on shownSynced {
+    NumberAnimation { duration: 450; easing.type: Easing.OutCubic }
+  }
+
+  Behavior on shownSyncing {
+    NumberAnimation { duration: 450; easing.type: Easing.OutCubic }
+  }
 
   readonly property bool iconActive: Model.iconActive(data, loading)
   readonly property bool warningState: Model.hasWarning(data)
@@ -39,7 +47,7 @@ Panel {
   readonly property string barTooltip: Model.barTooltip(data, loading)
   readonly property string statusLine: Model.heroMeta(data, loading)
   readonly property color statusLineColor: Model.statusLineColor(data, loading, accent, urgent, foreground)
-  readonly property var displayFiles: Array.isArray(data && data.files) ? data.files.slice(0, maxFiles) : []
+  readonly property real syncedBytes: Math.max(0, Number(data && data.syncedBytes) || 0)
   readonly property var displayAccounts: Array.isArray(data && data.accounts) ? data.accounts : []
   readonly property var displayErrors: Array.isArray(data && data.errors) ? data.errors : []
 
@@ -53,9 +61,12 @@ Panel {
       paused: parsed.paused === true,
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
       files: parsed.paused === true ? [] : (Array.isArray(current.files) ? current.files : []),
-      errors: Array.isArray(parsed.errors) ? parsed.errors : []
+      errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+      syncedFiles: Number(parsed.syncedFiles) || 0,
+      syncedBytes: Number(parsed.syncedBytes) || 0
     }
     loading = false
+    syncAnimatedStats()
   }
 
   function applyFiles(parsed) {
@@ -68,16 +79,23 @@ Panel {
       paused: parsed.paused === true,
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : (Array.isArray(current.accounts) ? current.accounts : []),
       files: Array.isArray(parsed.files) ? parsed.files : [],
-      errors: Array.isArray(parsed.errors) ? parsed.errors : []
+      errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+      syncedFiles: Number(parsed.syncedFiles) || 0,
+      syncedBytes: Number(parsed.syncedBytes) || 0
     }
-    filesLoading = false
+    syncAnimatedStats()
+  }
+
+  function syncAnimatedStats() {
+    var current = data && typeof data === "object" ? data : Model.emptyData()
+    shownSynced = Number(current.syncedFiles) || 0
+    shownSyncing = current.paused === true || !Array.isArray(current.files) ? 0 : current.files.length
   }
 
   function applyPayload(raw, fromCache) {
     var parsed = Model.parsePayload(raw)
     if (fromCache) {
       applyAccountFields(parsed)
-      filesLoading = false
       return
     }
     applyAccountFields(parsed)
@@ -91,12 +109,9 @@ Panel {
     cacheProc.running = true
   }
 
-  function refresh(showFilesSpinner) {
+  function refresh() {
     if (!statusScript || statusProc.running) return
     if (!data.ok && displayAccounts.length === 0) loading = true
-    var wantFiles = showFilesSpinner === true && !(data && data.paused)
-    if (wantFiles) filesLoading = true
-    else filesLoading = false
     statusProc.command = ["bash", statusScript, "popup"]
     statusProc.running = true
   }
@@ -118,8 +133,11 @@ Panel {
       paused: !wasPaused,
       accounts: Array.isArray(current.accounts) ? current.accounts : [],
       files: [],
-      errors: Array.isArray(current.errors) ? current.errors : []
+      errors: Array.isArray(current.errors) ? current.errors : [],
+      syncedFiles: Number(current.syncedFiles) || 0,
+      syncedBytes: Number(current.syncedBytes) || 0
     }
+    syncAnimatedStats()
     root.runAction(wasPaused ? "resume" : "pause")
   }
 
@@ -130,7 +148,7 @@ Panel {
 
   function openFromHotkey() {
     root.controller.show()
-    root.refresh(!(data && data.paused))
+    root.refresh()
   }
 
   function toggle() {
@@ -146,17 +164,16 @@ Panel {
 
   Component.onCompleted: {
     bootstrapFromCache()
-    refresh(false)
+    refresh()
   }
 
   onOpenedChanged: {
     if (opened) {
-      refresh(!(data && data.paused))
+      refresh()
       pollTimer.start()
       Qt.callLater(function() { keyCatcher.forceActiveFocus() })
     } else {
       pollTimer.stop()
-      filesLoading = false
     }
   }
 
@@ -223,26 +240,24 @@ Panel {
       var raw = String(stdoutBuf || "").trim()
         if (!raw) {
           root.loading = false
-          root.filesLoading = false
           return
         }
         root.applyPayload(raw, false)
 
       root.loading = false
-      root.filesLoading = false
     }
   }
 
   Process {
     id: actionProc
-    onExited: root.refresh(false)
+    onExited: root.refresh()
   }
 
   Timer {
     id: pollTimer
     interval: root.pollMs
     repeat: true
-    onTriggered: root.refresh(false)
+    onTriggered: root.refresh()
   }
 
   IpcHandler {
@@ -253,7 +268,7 @@ Panel {
     function show(): void { root.openFromHotkey() }
     function hide(): void { root.close() }
     function toggle(): void { root.toggle() }
-    function refresh(): string { root.refresh(false); return "ok" }
+    function refresh(): string { root.refresh(); return "ok" }
   }
 
   KeyboardPanel {
@@ -325,6 +340,31 @@ Panel {
             }
           }
 
+          Row {
+            visible: !root.loading && root.data.ok === true
+            width: parent.width
+            spacing: Style.space(8)
+
+            StatTile {
+              width: (parent.width - parent.spacing * 2) / 3
+              value: Model.formatCount(root.shownSynced)
+              label: "synced"
+            }
+
+            StatTile {
+              width: (parent.width - parent.spacing * 2) / 3
+              value: Model.formatCount(root.shownSyncing)
+              label: "syncing"
+              valueColor: root.shownSyncing > 0 ? root.accent : root.foreground
+            }
+
+            StatTile {
+              width: (parent.width - parent.spacing * 2) / 3
+              value: Model.formatBytes(root.syncedBytes)
+              label: "size"
+            }
+          }
+
           PanelSeparator {
             visible: root.displayAccounts.length > 0
             foreground: root.foreground
@@ -346,67 +386,6 @@ Panel {
               width: column.width
               account: modelData
             }
-          }
-
-          PanelSeparator {
-            visible: !root.data.paused && (root.displayFiles.length > 0 || root.filesLoading
-              || (!root.loading && root.displayErrors.length === 0 && !(root.data && root.data.error)))
-            foreground: root.foreground
-          }
-
-          PanelSectionHeader {
-            visible: !root.data.paused && (root.displayFiles.length > 0 || root.filesLoading
-              || (!root.loading && root.displayErrors.length === 0 && !(root.data && root.data.error)))
-            width: parent.width
-            text: "FILES"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-          }
-
-          Item {
-            width: parent.width
-            height: 56
-            visible: !root.data.paused && root.filesLoading && root.displayFiles.length === 0
-
-            Text {
-              textFormat: Text.PlainText
-              anchors.centerIn: parent
-              text: "󰇘"
-              color: root.accent
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.title
-              opacity: 0.85
-              transformOrigin: Item.Center
-
-              RotationAnimation on rotation {
-                running: root.filesLoading && root.displayFiles.length === 0
-                from: 0
-                to: 360
-                duration: 900
-                loops: Animation.Infinite
-              }
-            }
-          }
-
-          Repeater {
-            model: root.displayFiles
-
-            FileRow {
-              required property var modelData
-              width: column.width
-              file: modelData
-            }
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            visible: !root.data.paused && !root.loading && root.displayFiles.length === 0 && !root.filesLoading
-            text: Model.emptyFilesMessage(root.data, root.loading)
-            color: root.dim
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.bodySmall
-            horizontalAlignment: Text.AlignHCenter
           }
 
           PanelSeparator {
@@ -501,48 +480,44 @@ Panel {
     }
   }
 
-  component FileRow: Column {
-    property var file: null
-    spacing: Style.spacing.labelGap
-    width: parent.width
+  component StatTile: BorderSurface {
+    id: tile
+    property string value: ""
+    property string label: ""
+    property color valueColor: root.accent
 
-    Text {
-      textFormat: Text.PlainText
-      width: parent.width
-      text: Model.basename(file ? file.path : "")
-      color: root.foreground
-      font.family: root.fontFamily
-      font.pixelSize: Style.font.body
-      font.bold: true
-      elide: Text.ElideRight
-    }
+    implicitHeight: tileColumn.implicitHeight + Style.spacing.lg * 2
+    color: Color.popups.background
+    borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, 1)
+    radius: Style.cornerRadius
 
-    Text {
-      textFormat: Text.PlainText
-      width: parent.width
-      text: Model.fileDetail(file)
-      color: root.dim
-      font.family: root.fontFamily
-      font.pixelSize: Style.font.caption
-      elide: Text.ElideRight
-    }
+    Column {
+      id: tileColumn
+      anchors.centerIn: parent
+      width: parent.width - Style.spacing.lg * 2
+      spacing: Style.spacing.labelGap
 
-    Item {
-      width: parent.width
-      height: 4
-      visible: file && Number(file.total || 0) > 0
-
-      Rectangle {
-        anchors.fill: parent
-        radius: 2
-        color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+      Text {
+        textFormat: Text.PlainText
+        width: parent.width
+        text: tile.value
+        color: tile.valueColor
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.title
+        font.bold: true
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
       }
 
-      Rectangle {
-        height: parent.height
-        width: parent.width * Math.max(0, Math.min(1, Number(file ? file.percent : 0) / 100))
-        radius: 2
-        color: root.accent
+      Text {
+        textFormat: Text.PlainText
+        width: parent.width
+        text: tile.label
+        color: root.dim
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
       }
     }
   }

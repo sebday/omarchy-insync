@@ -1,6 +1,6 @@
 # Insync
 
-Bar widget for [Insync](https://www.insynchq.com/) cloud sync: accounts, live file progress, and errors. 
+Bar widget for [Insync](https://www.insynchq.com/) cloud sync: accounts, sync totals, and errors. 
 
 I use Insync to sync my Google Drive and One Drive accounts into Linux. I think it's well worth the one time fee as there is nothing open-source that works as well or reliably.
 
@@ -53,8 +53,8 @@ Hover shows the current status line (syncing, paused, error, or account count).
 Left-click the bar icon for a popup with:
 
 - **Hero** — status, account count, and a pause/resume switch (same pattern as Audio and Dropbox)
+- **Totals** — files synced, files currently syncing, and combined size
 - **Accounts** — email and provider for each linked cloud
-- **Files** — up to five active transfers when syncing (hidden while paused)
 - **Errors** — items from `insync error list` (skipped while paused)
 
 The panel polls while it is open.

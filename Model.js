@@ -23,7 +23,9 @@ function emptyData(error) {
     paused: false,
     accounts: [],
     files: [],
-    errors: []
+    errors: [],
+    syncedFiles: 0,
+    syncedBytes: 0
   }
 }
 
@@ -49,32 +51,35 @@ function parsePayload(raw) {
     paused: json.paused === true,
     accounts: Array.isArray(json.accounts) ? json.accounts : [],
     files: json.paused === true ? [] : (Array.isArray(json.files) ? json.files : []),
-    errors: Array.isArray(json.errors) ? json.errors : []
+    errors: Array.isArray(json.errors) ? json.errors : [],
+    syncedFiles: nonNegative(json.syncedFiles),
+    syncedBytes: nonNegative(json.syncedBytes)
   }
 }
 
-function basename(path) {
-  var p = String(path || "")
-  var idx = p.lastIndexOf("/")
-  return idx >= 0 ? p.slice(idx + 1) : p
+function nonNegative(value) {
+  var n = Math.round(Number(value) || 0)
+  return n > 0 ? n : 0
+}
+
+function formatCount(n) {
+  var value = nonNegative(n)
+  var digits = String(value)
+  var out = ""
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 === 0) out += ","
+    out += digits.charAt(i)
+  }
+  return out
 }
 
 function formatBytes(n) {
   n = Number(n) || 0
   if (n < 1024) return Math.round(n) + " B"
   if (n < 1048576) return (n / 1024).toFixed(1) + " KB"
-  if (n < 1073741824) return (n / 1048576).toFixed(1) + " MB"
-  return (n / 1073741824).toFixed(2) + " GB"
-}
-
-function fileDetail(file) {
-  if (!file || typeof file !== "object") return ""
-  var action = String(file.action || "")
-  var pct = Number(file.percent || 0)
-  if (file.total > 0)
-    return action + " · " + formatBytes(file.done) + " / " + formatBytes(file.total)
-      + " · " + Math.round(pct) + "%"
-  return action + (file.detail ? " · " + String(file.detail) : "")
+  if (n < 1073741824) return (n / 1048576).toFixed(n >= 104857600 ? 0 : 1) + " MB"
+  if (n < 1099511627776) return (n / 1073741824).toFixed(n >= 10737418240 ? 0 : 1) + " GB"
+  return (n / 1099511627776).toFixed(2) + " TB"
 }
 
 function providerIcon(provider) {
@@ -102,13 +107,6 @@ function isUnavailable(data) {
   if (data.ok) return false
   if (data.error) return true
   return list(data, "accounts").length === 0
-}
-
-function emptyFilesMessage(data, loading) {
-  if (loading) return ""
-  if (isUnavailable(data)) return "Insync unavailable"
-  if (data && data.paused) return ""
-  return "Nothing syncing"
 }
 
 function statusLine(data, loading) {

@@ -16,7 +16,7 @@ insync_available() {
 cmd_popup() {
   if ! insync_available; then
     mkdir -p "$(dirname "$INSYNC_ACCOUNTS_JSON")"
-    jq -n '{ok:false,error:"insync not found",status:"",paused:false,accounts:[],files:[],errors:[]}' | tee "$INSYNC_ACCOUNTS_JSON"
+    jq -n '{ok:false,error:"insync not found",status:"",paused:false,accounts:[],files:[],errors:[],syncedFiles:0,syncedBytes:0}' | tee "$INSYNC_ACCOUNTS_JSON"
     return
   fi
 
