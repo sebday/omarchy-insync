@@ -54,6 +54,7 @@ Left-click the bar icon for a popup with:
 
 - **Hero** — status, account count, and a pause/resume switch (same pattern as Audio and Dropbox)
 - **Totals** — files synced, files currently syncing, and combined size
+- **Recent** — the last three files Insync finished syncing
 - **Accounts** — email and provider for each linked cloud
 - **Errors** — items from `insync error list` (skipped while paused)
 

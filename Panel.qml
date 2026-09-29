@@ -50,6 +50,7 @@ Panel {
   readonly property real syncedBytes: Math.max(0, Number(data && data.syncedBytes) || 0)
   readonly property var displayAccounts: Array.isArray(data && data.accounts) ? data.accounts : []
   readonly property var displayErrors: Array.isArray(data && data.errors) ? data.errors : []
+  readonly property var displayRecent: Model.recentFiles(data)
 
   function applyAccountFields(parsed) {
     if (!parsed || typeof parsed !== "object") return
@@ -62,6 +63,7 @@ Panel {
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
       files: parsed.paused === true ? [] : (Array.isArray(current.files) ? current.files : []),
       errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+      recent: Array.isArray(parsed.recent) ? parsed.recent : (Array.isArray(current.recent) ? current.recent : []),
       syncedFiles: Number(parsed.syncedFiles) || 0,
       syncedBytes: Number(parsed.syncedBytes) || 0
     }
@@ -80,6 +82,7 @@ Panel {
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : (Array.isArray(current.accounts) ? current.accounts : []),
       files: Array.isArray(parsed.files) ? parsed.files : [],
       errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+      recent: Array.isArray(parsed.recent) ? parsed.recent : [],
       syncedFiles: Number(parsed.syncedFiles) || 0,
       syncedBytes: Number(parsed.syncedBytes) || 0
     }
@@ -134,6 +137,7 @@ Panel {
       accounts: Array.isArray(current.accounts) ? current.accounts : [],
       files: [],
       errors: Array.isArray(current.errors) ? current.errors : [],
+      recent: Array.isArray(current.recent) ? current.recent : [],
       syncedFiles: Number(current.syncedFiles) || 0,
       syncedBytes: Number(current.syncedBytes) || 0
     }
@@ -426,7 +430,78 @@ Panel {
             font.pixelSize: Style.font.body
             wrapMode: Text.WordWrap
           }
+
+          PanelSeparator {
+            visible: root.displayRecent.length > 0
+            foreground: root.foreground
+          }
+
+          PanelSectionHeader {
+            visible: root.displayRecent.length > 0
+            width: parent.width
+            text: "RECENT"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+          }
+
+          Repeater {
+            model: root.displayRecent
+
+            RecentRow {
+              required property var modelData
+              width: column.width
+              file: modelData
+            }
+          }
         }
+      }
+    }
+  }
+
+  component RecentRow: Row {
+    property var file: null
+    spacing: Style.spacing.sm
+    width: parent.width
+
+    Item {
+      id: iconSlot
+      width: details.height
+      height: details.height
+
+      Text {
+        textFormat: Text.PlainText
+        anchors.centerIn: parent
+        text: Model.fileIcon(file ? file.name : "")
+        color: root.foreground
+        opacity: 0.72
+        font.family: root.fontFamily
+        font.pixelSize: Math.round(parent.height * 0.78)
+      }
+    }
+
+    Column {
+      id: details
+      width: parent.width - iconSlot.width - parent.spacing
+      spacing: Style.spacing.labelGap
+
+      Text {
+        textFormat: Text.PlainText
+        width: parent.width
+        text: Model.plain(file && file.name, 160)
+        color: root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.body
+        elide: Text.ElideMiddle
+      }
+
+      Text {
+        textFormat: Text.PlainText
+        width: parent.width
+        text: Model.recentMeta(file)
+        color: root.dim
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
       }
     }
   }

@@ -24,6 +24,7 @@ function emptyData(error) {
     accounts: [],
     files: [],
     errors: [],
+    recent: [],
     syncedFiles: 0,
     syncedBytes: 0
   }
@@ -52,9 +53,47 @@ function parsePayload(raw) {
     accounts: Array.isArray(json.accounts) ? json.accounts : [],
     files: json.paused === true ? [] : (Array.isArray(json.files) ? json.files : []),
     errors: Array.isArray(json.errors) ? json.errors : [],
+    recent: recentFiles(json),
     syncedFiles: nonNegative(json.syncedFiles),
     syncedBytes: nonNegative(json.syncedBytes)
   }
+}
+
+function recentFiles(data) {
+  var rows = list(data, "recent")
+  var out = []
+  for (var i = 0; i < rows.length && out.length < 3; i++) {
+    var row = rows[i]
+    var name = plain(row && row.name, 160)
+    if (!name) continue
+    out.push({
+      name: name,
+      provider: plain(row && row.provider, 40),
+      at: nonNegative(row && row.at)
+    })
+  }
+  return out
+}
+
+function formatAgo(unix) {
+  var t = nonNegative(unix)
+  if (!t) return ""
+  var sec = Math.round(Date.now() / 1000) - t
+  if (sec < 45) return "just now"
+  if (sec < 3600) return Math.max(1, Math.round(sec / 60)) + "m ago"
+  if (sec < 86400) return Math.max(1, Math.round(sec / 3600)) + "h ago"
+  var days = Math.round(sec / 86400)
+  if (days < 14) return days + "d ago"
+  var date = new Date(t * 1000)
+  var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return months[date.getMonth()] + " " + date.getDate()
+}
+
+function recentMeta(row) {
+  var provider = plain(row && row.provider, 40)
+  var when = formatAgo(row && row.at)
+  if (provider && when) return provider + " · " + when
+  return provider || when || ""
 }
 
 function nonNegative(value) {
@@ -80,6 +119,31 @@ function formatBytes(n) {
   if (n < 1073741824) return (n / 1048576).toFixed(n >= 104857600 ? 0 : 1) + " MB"
   if (n < 1099511627776) return (n / 1073741824).toFixed(n >= 10737418240 ? 0 : 1) + " GB"
   return (n / 1099511627776).toFixed(2) + " TB"
+}
+
+function fileExt(name) {
+  var s = String(name || "").toLowerCase()
+  var dot = s.lastIndexOf(".")
+  if (dot < 0 || dot === s.length - 1) return ""
+  return s.substring(dot + 1)
+}
+
+function hasExt(ext, list) {
+  return ext !== "" && (" " + list + " ").indexOf(" " + ext + " ") >= 0
+}
+
+function fileIcon(name) {
+  var ext = fileExt(name)
+  if (hasExt(ext, "png jpg jpeg gif webp svg heic heif bmp tif tiff avif ico")) return "󰈟"
+  if (hasExt(ext, "pdf")) return "󰈦"
+  if (hasExt(ext, "xls xlsx xlsm csv ods gdsheet gsheet numbers")) return "󰈛"
+  if (hasExt(ext, "ppt pptx odp key")) return "󰈧"
+  if (hasExt(ext, "doc docx odt rtf txt md markdown")) return "󰈙"
+  if (hasExt(ext, "mp3 flac wav m4a ogg aac opus wma aiff")) return "󰈣"
+  if (hasExt(ext, "mp4 mkv mov webm avi m4v")) return "󰈫"
+  if (hasExt(ext, "zip gz tgz tar bz2 xz 7z rar")) return "󰗄"
+  if (hasExt(ext, "js ts jsx tsx py go rs java c h cpp hpp css scss html htm xml json yml yaml sh sql toml")) return "󰈮"
+  return "󰈔"
 }
 
 function providerIcon(provider) {
