@@ -74,10 +74,6 @@ omarchy-shell evo.insync refresh
 | `toggle` | Toggle the panel |
 | `refresh` | Refresh status |
 
-## License
-
-MIT.
-
 ## Removing
 
 ```bash
