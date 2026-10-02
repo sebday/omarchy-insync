@@ -320,7 +320,7 @@ Panel {
               Text {
                 textFormat: Text.PlainText
                 text: "󰋼"
-                color: root.statusLineColor
+                color: root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.display
                 opacity: 0.92
@@ -347,7 +347,7 @@ Panel {
           Row {
             visible: !root.loading && root.data.ok === true
             width: parent.width
-            spacing: Style.space(8)
+            spacing: Style.space(16)
 
             StatTile {
               width: (parent.width - parent.spacing * 2) / 3
@@ -369,26 +369,71 @@ Panel {
             }
           }
 
-          PanelSeparator {
-            visible: root.displayAccounts.length > 0
-            foreground: root.foreground
-          }
-
-          PanelSectionHeader {
+          Item {
+            id: accountsBox
             visible: root.displayAccounts.length > 0
             width: parent.width
-            text: "ACCOUNTS"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-          }
+            implicitHeight: accountsFrame.height + (accountsLegend.visible ? accountsLegend.height / 2 : 0)
 
-          Repeater {
-            model: root.displayAccounts
+            Rectangle {
+              id: accountsFrame
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.topMargin: accountsLegend.visible ? accountsLegend.height / 2 : 0
+              height: accountsColumn.implicitHeight + Style.space(32)
+              color: "transparent"
+              radius: Style.space(8)
+              border.width: 1
+              border.color: Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.9)
+              antialiasing: true
+            }
 
-            AccountRow {
-              required property var modelData
-              width: column.width
-              account: modelData
+            Item {
+              id: accountsLegend
+              x: Style.space(14)
+              y: 0
+              width: accountsLegendText.implicitWidth + Style.space(8)
+              height: Math.max(1, accountsLegendText.implicitHeight)
+              visible: accountsBox.visible
+
+              Rectangle {
+                anchors.fill: parent
+                color: Color.popups.background
+              }
+
+              Text {
+                id: accountsLegendText
+                x: Style.space(4)
+                anchors.verticalCenter: parent.verticalCenter
+                textFormat: Text.PlainText
+                text: "accounts"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.bold: true
+              }
+            }
+
+            Column {
+              id: accountsColumn
+              anchors.left: accountsFrame.left
+              anchors.right: accountsFrame.right
+              anchors.top: accountsFrame.top
+              anchors.topMargin: Style.space(16)
+              anchors.leftMargin: Style.space(12)
+              anchors.rightMargin: Style.space(12)
+              spacing: Style.space(8)
+
+              Repeater {
+                model: root.displayAccounts
+
+                AccountRow {
+                  required property var modelData
+                  width: accountsColumn.width
+                  account: modelData
+                }
+              }
             }
           }
 
@@ -431,26 +476,71 @@ Panel {
             wrapMode: Text.WordWrap
           }
 
-          PanelSeparator {
-            visible: root.displayRecent.length > 0
-            foreground: root.foreground
-          }
-
-          PanelSectionHeader {
+          Item {
+            id: recentBox
             visible: root.displayRecent.length > 0
             width: parent.width
-            text: "RECENT"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-          }
+            implicitHeight: recentFrame.height + (recentLegend.visible ? recentLegend.height / 2 : 0)
 
-          Repeater {
-            model: root.displayRecent
+            Rectangle {
+              id: recentFrame
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.topMargin: recentLegend.visible ? recentLegend.height / 2 : 0
+              height: recentColumn.implicitHeight + Style.space(32)
+              color: "transparent"
+              radius: Style.space(8)
+              border.width: 1
+              border.color: Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.9)
+              antialiasing: true
+            }
 
-            RecentRow {
-              required property var modelData
-              width: column.width
-              file: modelData
+            Item {
+              id: recentLegend
+              x: Style.space(14)
+              y: 0
+              width: recentLegendText.implicitWidth + Style.space(8)
+              height: Math.max(1, recentLegendText.implicitHeight)
+              visible: recentBox.visible
+
+              Rectangle {
+                anchors.fill: parent
+                color: Color.popups.background
+              }
+
+              Text {
+                id: recentLegendText
+                x: Style.space(4)
+                anchors.verticalCenter: parent.verticalCenter
+                textFormat: Text.PlainText
+                text: "recent"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.bold: true
+              }
+            }
+
+            Column {
+              id: recentColumn
+              anchors.left: recentFrame.left
+              anchors.right: recentFrame.right
+              anchors.top: recentFrame.top
+              anchors.topMargin: Style.space(16)
+              anchors.leftMargin: Style.space(12)
+              anchors.rightMargin: Style.space(12)
+              spacing: Style.space(8)
+
+              Repeater {
+                model: root.displayRecent
+
+                RecentRow {
+                  required property var modelData
+                  width: recentColumn.width
+                  file: modelData
+                }
+              }
             }
           }
         }
@@ -555,45 +645,67 @@ Panel {
     }
   }
 
-  component StatTile: BorderSurface {
+  component StatTile: Item {
     id: tile
     property string value: ""
     property string label: ""
     property color valueColor: root.accent
 
-    implicitHeight: tileColumn.implicitHeight + Style.spacing.lg * 2
-    color: Color.popups.background
-    borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, 1)
-    radius: Style.cornerRadius
+    implicitWidth: Style.space(108)
+    implicitHeight: Style.font.heading + Style.space(56)
 
-    Column {
-      id: tileColumn
-      anchors.centerIn: parent
-      width: parent.width - Style.spacing.lg * 2
-      spacing: Style.spacing.labelGap
+    Rectangle {
+      id: frame
+      anchors.fill: parent
+      anchors.topMargin: legendChip.visible ? legendChip.height / 2 : 0
+      color: "transparent"
+      radius: Style.space(8)
+      border.width: 1
+      border.color: Qt.rgba(root.dim.r, root.dim.g, root.dim.b, 0.9)
+      antialiasing: true
+    }
 
-      Text {
-        textFormat: Text.PlainText
-        width: parent.width
-        text: tile.value
-        color: tile.valueColor
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.title
-        font.bold: true
-        horizontalAlignment: Text.AlignHCenter
-        elide: Text.ElideRight
+    Item {
+      id: legendChip
+      x: Style.space(14)
+      y: 0
+      width: legendTextItem.implicitWidth + Style.space(8)
+      height: Math.max(1, legendTextItem.implicitHeight)
+      visible: tile.label !== ""
+
+      Rectangle {
+        anchors.fill: parent
+        color: Color.popups.background
       }
 
       Text {
+        id: legendTextItem
+        x: Style.space(4)
+        anchors.verticalCenter: parent.verticalCenter
         textFormat: Text.PlainText
-        width: parent.width
         text: tile.label
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
-        horizontalAlignment: Text.AlignHCenter
-        elide: Text.ElideRight
+        font.bold: true
       }
+    }
+
+    Text {
+      anchors.fill: frame
+      anchors.leftMargin: Style.space(8)
+      anchors.rightMargin: Style.space(8)
+      textFormat: Text.PlainText
+      text: tile.value
+      color: tile.valueColor
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.display
+      font.bold: true
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
+      elide: Text.ElideRight
+      fontSizeMode: Text.HorizontalFit
+      minimumPixelSize: Style.font.body
     }
   }
 
